@@ -24,20 +24,34 @@ def add_commas(n):
     return add_commas(n[:-3]) + ',' + n[-3:]
 
 
-def get_scores(machines=(67444, 67443, 67445)):
+def get_scores(machines=(67444, 67443, 67445), testing=False):
     """
     Get scores from scorbit
+    :param machines: List of machines to get scores from
+    :param testing: If true, load scores from file
     :return: List of machines with their cores
     """
     scores = []
 
     for machine in machines:
-        machineUrl = f"https://api.scorbit.io/api/venuemachine/{machine}"
-        scoreUrl = f"https://api.scorbit.io/api/venuemachine/{machine}/top_scores/"
-        machineR = requests.get(machineUrl, auth=(creds["username"], creds["password"]))
-        scoreR = requests.get(scoreUrl, auth=(creds["username"], creds["password"]))
-        machineData = machineR.json()
-        scoreData = scoreR.json()
+        if testing:
+            with open(f"data/machine_{machine}.json") as f:
+                machineData = json.load(f)
+            with open(f"data/scores_{machine}.json") as f:
+                scoreData = json.load(f)
+        else:
+            # get data from scorbit
+            machineUrl = f"https://api.scorbit.io/api/venuemachine/{machine}"
+            scoreUrl = f"https://api.scorbit.io/api/venuemachine/{machine}/top_scores/"
+            machineR = requests.get(machineUrl, auth=(creds["username"], creds["password"]))
+            scoreR = requests.get(scoreUrl, auth=(creds["username"], creds["password"]))
+            machineData = machineR.json()
+            scoreData = scoreR.json()
+            # save data
+            with open(f"data/machine_{machine}.json", "w") as f:
+                json.dump(machineData, f, indent=4)
+            with open(f"data/scores_{machine}.json", "w") as f:
+                json.dump(scoreData, f, indent=4)
 
         scores.append({"name": machineData['machine']['name'], "scores": []})
         for i in scoreData['all_time_venuemachine']:
@@ -50,7 +64,7 @@ def index():
     """
     This is the main page
     """
-    return render_template('index.html', machines=get_scores())
+    return render_template('index.html', machines=get_scores(testing=True))
 
 
 if __name__ == "__main__":
