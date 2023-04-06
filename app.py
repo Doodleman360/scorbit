@@ -1,6 +1,6 @@
 # basic flask app
 import json
-
+import os.path
 import requests
 from flask import Flask, render_template
 
@@ -35,6 +35,10 @@ def get_scores(machines=(67444, 67443, 67445), testing=False):
 
     for machine in machines:
         if testing:
+            # check if file exists
+            if not os.path.isfile(f"data/machine_{machine}.json") or not os.path.isfile(f"data/scores_{machine}.json"):
+                print("File not found, Rerunning without testing")
+                return get_scores()
             with open(f"data/machine_{machine}.json") as f:
                 machineData = json.load(f)
             with open(f"data/scores_{machine}.json") as f:
