@@ -2,13 +2,18 @@
 import requests
 import json
 
-#get creds from file
+# get creds from file
 with open('creds.json') as f:
     creds = json.load(f)
 
 
 # function to add commas to numbers
 def add_commas(n):
+    """
+    Add commas to numbers
+    :param n: Number to add commas to
+    :return: String with commas
+    """
     n = str(n)
     if len(n) <= 3:
         return n

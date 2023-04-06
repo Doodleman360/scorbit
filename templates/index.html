@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>High Scores</title>
+</head>
+<body>
+    {% for machine in machines %}
+    <h1>{{ machine.name }} High Scores</h1>
+    <table>
+        <tr>
+            <th>Player</th>
+            <th>Score</th>
+        </tr>
+        {% for score in machine.scores %}
+        <tr>
+            <td>{{ score.initials }}</td>
+            <td>{{ score.score }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endfor %}
+</body>
+</html>
