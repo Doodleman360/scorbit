@@ -57,7 +57,7 @@ def get_scores(machines=(67444, 67443, 67445), testing=False):
             with open(f"data/scores_{machine}.json", "w") as f:
                 json.dump(scoreData, f, indent=4)
 
-        scores.append({"name": machineData['machine']['name'], "scores": []})
+        scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
         for i in scoreData['all_time_venuemachine']:
             scores[-1]["scores"].append({"score": add_commas(i['score']), "initials": i['player']['initials']})
     return scores
