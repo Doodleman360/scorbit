@@ -56,7 +56,8 @@
         }
     });
     socket.addEventListener('close', (event) => {
-        location.reload();
+        console.log('Socket closed');
+        //location.reload();
     });
 </script>
 <script>
