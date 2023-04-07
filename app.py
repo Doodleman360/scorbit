@@ -3,6 +3,7 @@ import json
 import os.path
 import time
 import requests
+import random
 from flask import Flask, redirect, render_template, request
 from flask_sock import Sock
 from werkzeug.exceptions import HTTPException
@@ -22,10 +23,11 @@ def send_update():
     """
     Send update to all clients
     """
+    data = generate_scoreboard_html()
     clients = client_list.copy()
     for client in clients:
         try:
-            client.send(json.dumps(get_scores(cached=False)))
+            client.send(data)
         except Exception as e:
             print(e)
             print("Closing connection to client")
@@ -37,7 +39,7 @@ def send_update_loop():
     Send update to all clients every 60 seconds
     """
     while True:
-        time.sleep(600)
+        time.sleep(30)
         send_update()
 
 
@@ -103,13 +105,56 @@ def get_scores(venueID=17029, cached=False):
     return scores
 
 
+def get_random_scores():
+    """
+    Get generate random scores for testing
+    """
+    scores = []
+    for i in range(random.randint(2, 5)):
+        choice = get_random_pinball()
+        scores.append({"name": choice[0], "art": choice[1], "scores": []})
+        for j in range(10):
+            scores[-1]["scores"].append({"rank": j + 1, "score": add_commas(random.randint(1000000, 100000000)), "initials": random_initials()})
+    return scores
+
+
+def random_initials():
+    """
+    Generate random initials
+    """
+    return "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=3))
+
+
+def get_random_pinball():
+    """
+    Get random pinball name and art
+    """
+    with open("data/machines.json") as f:
+        data = json.load(f)
+    choice = random.choice(data)
+    while not choice["backglass_art"]:
+        choice = random.choice(data)
+    return choice["name"], choice["backglass_art"]
+
+
+def generate_scoreboard_html(venueID=17029):
+    """
+    Generate scoreboard html
+    :return:
+    """
+    print("Generating scoreboard html")
+    with app.app_context():
+        return render_template('scoreGridSnip.html', machines=get_random_scores())
+
+
 @app.route('/<int:venueID>')
 @app.route('/')
 def index(venueID=17029):
     """
     This is the main page
     """
-    return render_template('index.html', machines=get_scores(venueID=venueID, cached=True))
+    # return render_template('index.html', machines=get_scores(venueID=venueID, cached=True))
+    return render_template('index.html', machines=get_random_scores())
 
 
 @sock.route("/sock")
@@ -120,6 +165,7 @@ def connect(ws):
     """
     client_list.append(ws)
     print("Client connected")
+    ws.send(generate_scoreboard_html())
     while True:
         data = ws.receive()
         if data == "close":

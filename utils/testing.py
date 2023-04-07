@@ -3,7 +3,7 @@ import requests
 import json
 
 # get creds from file
-with open('creds.json') as f:
+with open('../creds.json') as f:
     creds = json.load(f)
 
 

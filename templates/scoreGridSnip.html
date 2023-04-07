@@ -1,0 +1,29 @@
+<div class="container-fluid text-center p-3 text-primary-emphasis vh-100 font-size: 2vh;">
+    <div class="row h-100" id="scores">
+        {% for machine in machines %}
+        <div class="col-sm bg-primary-subtle border border-primary-subtle rounded-3">
+            <table class="table table">
+                <thead>
+                    <tr>
+                        <th colspan="3" class="text-center">{{ machine.name }}</th>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th>Player</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-image" style="background-image: url('{{ machine.art }}');">
+                {% for score in machine.scores %}
+                <tr>
+                    <td class="fw-bold">{{ score.rank }}</td>
+                    <td class="fw-bold">{{ score.initials }}</td>
+                    <td class="fw-bold">{{ score.score }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+</div>
