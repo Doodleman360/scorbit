@@ -1,15 +1,44 @@
 # basic flask app
 import json
 import os.path
+import time
 import requests
 from flask import Flask, redirect, render_template, request
+from flask_sock import Sock
 from werkzeug.exceptions import HTTPException
+from threading import Thread
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
+app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
+sock = Sock(app)
+client_list = []
 
 # get creds from file
 with open('creds.json') as f:
     creds = json.load(f)
+
+
+def send_update():
+    """
+    Send update to all clients
+    """
+    clients = client_list.copy()
+    for client in clients:
+        try:
+            client.send(json.dumps(get_scores(cached=False)))
+        except Exception as e:
+            print(e)
+            print("Closing connection to client")
+            client_list.remove(client)
+
+
+def send_update_loop():
+    """
+    Send update to all clients every 60 seconds
+    """
+    while True:
+        time.sleep(600)
+        send_update()
 
 
 # function to add commas to numbers
@@ -25,11 +54,11 @@ def add_commas(n):
     return add_commas(n[:-3]) + ',' + n[-3:]
 
 
-def get_scores(venueID=17029, testing=False):
+def get_scores(venueID=17029, cached=False):
     """
     Get scores from scorbit
     :param venueID: ID of venue to get scores from
-    :param testing: If true, load scores from file
+    :param cached: If true, load scores from file
     :return: List of machines with their cores
     """
     scores = []
@@ -38,11 +67,11 @@ def get_scores(venueID=17029, testing=False):
     venueData = venueR.json()
 
     for machine in venueData['results']:
-        if testing:
+        if cached:
             # check if file exists
             if not os.path.isfile(f"data/machine_{machine['venuemachine_id']}.json") or not os.path.isfile(f"data/scores_{machine['venuemachine_id']}.json"):
                 print("File not found, Rerunning without testing")
-                return get_scores(venueID=venueID, testing=False)
+                return get_scores(venueID=venueID, cached=False)
             with open(f"data/machine_{machine['venuemachine_id']}.json") as f:
                 machineData = json.load(f)
             with open(f"data/scores_{machine['venuemachine_id']}.json") as f:
@@ -80,11 +109,31 @@ def index(venueID=17029):
     """
     This is the main page
     """
-    return render_template('index.html', machines=get_scores(venueID=venueID, testing=True))
+    return render_template('index.html', machines=get_scores(venueID=venueID, cached=True))
+
+
+@sock.route("/sock")
+def connect(ws):
+    """
+    Connect to websocket
+    :param ws: websocket object
+    """
+    client_list.append(ws)
+    print("Client connected")
+    while True:
+        data = ws.receive()
+        if data == "close":
+            break
+    client_list.remove(ws)
 
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    """
+    Handle all exceptions
+    :param e: exception
+    :return: redirect to http.cat
+    """
     # pass through HTTP errors
     if isinstance(e, HTTPException):
         return redirect(f"https://http.cat/{e.code}")
@@ -95,3 +144,6 @@ def handle_exception(e):
 
 if __name__ == "__main__":
     app.run()
+
+app.send_update_loop_thread = Thread(target=send_update_loop, daemon=True)
+app.send_update_loop_thread.start()
