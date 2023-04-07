@@ -2,7 +2,8 @@
 import json
 import os.path
 import requests
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request
+from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 
@@ -73,13 +74,23 @@ def get_scores(venueID=17029, testing=False):
     return scores
 
 
-@app.route('/<venueID>')
+@app.route('/<int:venueID>')
 @app.route('/')
 def index(venueID=17029):
     """
     This is the main page
     """
     return render_template('index.html', machines=get_scores(venueID=venueID, testing=True))
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return redirect(f"https://http.cat/{e.code}")
+
+    # now you're handling non-HTTP exceptions only
+    return redirect("https://http.cat/500")
 
 
 if __name__ == "__main__":
