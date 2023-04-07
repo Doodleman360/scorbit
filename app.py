@@ -2,7 +2,7 @@
 import json
 import os.path
 import requests
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
@@ -41,7 +41,7 @@ def get_scores(venueID=17029, testing=False):
             # check if file exists
             if not os.path.isfile(f"data/machine_{machine['venuemachine_id']}.json") or not os.path.isfile(f"data/scores_{machine['venuemachine_id']}.json"):
                 print("File not found, Rerunning without testing")
-                return get_scores()
+                return get_scores(venueID=venueID, testing=False)
             with open(f"data/machine_{machine['venuemachine_id']}.json") as f:
                 machineData = json.load(f)
             with open(f"data/scores_{machine['venuemachine_id']}.json") as f:
@@ -73,12 +73,13 @@ def get_scores(venueID=17029, testing=False):
     return scores
 
 
+@app.route('/<venueID>')
 @app.route('/')
-def index():
+def index(venueID=17029):
     """
     This is the main page
     """
-    return render_template('index.html', machines=get_scores(testing=True))
+    return render_template('index.html', machines=get_scores(venueID=venueID, testing=True))
 
 
 if __name__ == "__main__":
