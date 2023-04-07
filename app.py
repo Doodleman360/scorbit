@@ -24,37 +24,40 @@ def add_commas(n):
     return add_commas(n[:-3]) + ',' + n[-3:]
 
 
-def get_scores(machines=(67444, 67443, 67445), testing=False):
+def get_scores(venueID=17029, testing=False):
     """
     Get scores from scorbit
-    :param machines: List of machines to get scores from
+    :param venueID: ID of venue to get scores from
     :param testing: If true, load scores from file
     :return: List of machines with their cores
     """
     scores = []
+    venueUrl = f'https://api.scorbit.io/api/venue/{venueID}/venuemachines/'
+    venueR = requests.get(venueUrl, auth=(creds["username"], creds["password"]))
+    venueData = venueR.json()
 
-    for machine in machines:
+    for machine in venueData['results']:
         if testing:
             # check if file exists
-            if not os.path.isfile(f"data/machine_{machine}.json") or not os.path.isfile(f"data/scores_{machine}.json"):
+            if not os.path.isfile(f"data/machine_{machine['venuemachine_id']}.json") or not os.path.isfile(f"data/scores_{machine['venuemachine_id']}.json"):
                 print("File not found, Rerunning without testing")
                 return get_scores()
-            with open(f"data/machine_{machine}.json") as f:
+            with open(f"data/machine_{machine['venuemachine_id']}.json") as f:
                 machineData = json.load(f)
-            with open(f"data/scores_{machine}.json") as f:
+            with open(f"data/scores_{machine['venuemachine_id']}.json") as f:
                 scoreData = json.load(f)
         else:
             # get data from scorbit
-            machineUrl = f"https://api.scorbit.io/api/venuemachine/{machine}"
-            scoreUrl = f"https://api.scorbit.io/api/venuemachine/{machine}/top_scores/"
+            machineUrl = f"https://api.scorbit.io/api/venuemachine/{machine['venuemachine_id']}"
+            scoreUrl = f"https://api.scorbit.io/api/venuemachine/{machine['venuemachine_id']}/top_scores/"
             machineR = requests.get(machineUrl, auth=(creds["username"], creds["password"]))
             scoreR = requests.get(scoreUrl, auth=(creds["username"], creds["password"]))
             machineData = machineR.json()
             scoreData = scoreR.json()
             # save data
-            with open(f"data/machine_{machine}.json", "w") as f:
+            with open(f"data/machine_{machine['venuemachine_id']}.json", "w") as f:
                 json.dump(machineData, f, indent=4)
-            with open(f"data/scores_{machine}.json", "w") as f:
+            with open(f"data/scores_{machine['venuemachine_id']}.json", "w") as f:
                 json.dump(scoreData, f, indent=4)
 
         scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
@@ -63,6 +66,9 @@ def get_scores(machines=(67444, 67443, 67445), testing=False):
             if count == 11:
                 break
             scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials']})
+            count += 1
+        for i in range(10 - len(scores[-1]["scores"])):
+            scores[-1]["scores"].append({"rank": count, "score": "N/A", "initials": "N/A"})
             count += 1
     return scores
 
