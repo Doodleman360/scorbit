@@ -58,8 +58,12 @@ def get_scores(machines=(67444, 67443, 67445), testing=False):
                 json.dump(scoreData, f, indent=4)
 
         scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
+        count = 1
         for i in scoreData['all_time_venuemachine']:
-            scores[-1]["scores"].append({"score": add_commas(i['score']), "initials": i['player']['initials']})
+            if count == 11:
+                break
+            scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials']})
+            count += 1
     return scores
 
 
