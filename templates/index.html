@@ -42,24 +42,14 @@
 <script>
     const socket = new WebSocket('ws://' + location.host + '/sock');
     socket.addEventListener('message', ev => {
-        const msg = ev.data;
-        //console.log(msg);
+        const msg = JSON.parse(ev.data);
+        console.log("Received message");
         const body = document.getElementsByTagName("body")[0];
-        body.innerHTML = msg;
-        // const childDivs = document.getElementById("scores").children;
-        // for (let i = 0; i < childDivs.length; i++) {
-        //     const childDiv = childDivs[i];
-        //     for (let j = 0; j < msg[i].scores.length; j++) {
-        //         const score = msg[i].scores[j];
-        //         childDiv.children[0].children[1].children[j].children[0].innerHTML = score.rank;
-        //         childDiv.children[0].children[1].children[j].children[1].innerHTML = score.initials;
-        //         childDiv.children[0].children[1].children[j].children[2].innerHTML = score.score;
-        //     }
-        // }
+        body.innerHTML = msg.html;
     });
     socket.addEventListener('close', (event) => {
         console.log('Socket closed');
-        //location.reload();
+        location.reload();
     });
 </script>
 <script>

@@ -13,6 +13,7 @@ app = Flask(__name__, template_folder="templates")
 app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
 sock = Sock(app)
 client_list = []
+updateFrequency = 60
 
 # get creds from file
 with open('creds.json') as f:
@@ -39,7 +40,7 @@ def send_update_loop():
     Send update to all clients every 60 seconds
     """
     while True:
-        time.sleep(30)
+        time.sleep(updateFrequency)
         send_update()
 
 
@@ -140,11 +141,10 @@ def get_random_pinball():
 def generate_scoreboard_html(venueID=17029):
     """
     Generate scoreboard html
-    :return:
+    :return:  html string
     """
-    print("Generating scoreboard html")
     with app.app_context():
-        return render_template('scoreGridSnip.html', machines=get_random_scores())
+        return json.dumps({'html': render_template('scoreGridSnip.html', machines=get_scores(venueID=venueID, cached=True)), 'updateFrequency': updateFrequency})
 
 
 @app.route('/<int:venueID>')
@@ -153,8 +153,7 @@ def index(venueID=17029):
     """
     This is the main page
     """
-    # return render_template('index.html', machines=get_scores(venueID=venueID, cached=True))
-    return render_template('index.html', machines=get_random_scores())
+    return render_template('index.html', machines=get_scores(venueID=venueID, cached=True))  # return render_template('index.html', machines=get_random_scores())
 
 
 @sock.route("/sock")
