@@ -13,7 +13,10 @@ app = Flask(__name__, template_folder="templates")
 app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
 sock = Sock(app)
 client_list = []
-updateFrequency = 60
+updateFrequency = 120
+topXScores = 15
+
+# TODO: Add indicator for when scores change
 
 # get creds from file
 with open('creds.json') as f:
@@ -33,6 +36,7 @@ def send_update():
             print(e)
             print("Closing connection to client")
             client_list.remove(client)
+    print(f"Sent update to {len(client_list)} clients")
 
 
 def send_update_loop():
@@ -68,6 +72,7 @@ def get_scores(venueID=17029, cached=False):
     venueUrl = f'https://api.scorbit.io/api/venue/{venueID}/venuemachines/'
     venueR = requests.get(venueUrl, auth=(creds["username"], creds["password"]))
     venueData = venueR.json()
+    # TODO: Refactor so it only pulls data when needed
 
     for machine in venueData['results']:
         if cached:
@@ -96,11 +101,11 @@ def get_scores(venueID=17029, cached=False):
         scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
         count = 1
         for i in scoreData['all_time_venuemachine']:
-            if count == 11:
+            if count == topXScores + 1:
                 break
             scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials']})
             count += 1
-        for i in range(10 - len(scores[-1]["scores"])):
+        for i in range(topXScores - len(scores[-1]["scores"])):
             scores[-1]["scores"].append({"rank": count, "score": "N/A", "initials": "N/A"})
             count += 1
     return scores
@@ -144,7 +149,7 @@ def generate_scoreboard_html(venueID=17029):
     :return:  html string
     """
     with app.app_context():
-        return json.dumps({'html': render_template('scoreGridSnip.html', machines=get_scores(venueID=venueID, cached=True)), 'updateFrequency': updateFrequency})
+        return json.dumps({'html': render_template('scoreGridSnip.html', machines=get_scores(venueID=venueID, cached=False)), 'updateFrequency': updateFrequency})
 
 
 @app.route('/<int:venueID>')
