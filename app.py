@@ -1,4 +1,5 @@
 # basic flask app
+from datetime import datetime
 import json
 import os.path
 import time
@@ -17,6 +18,9 @@ updateFrequency = 120
 topXScores = 15
 
 # TODO: Add indicator for when scores change
+# TODO: move defaults to config file
+# TODO: make page refresh if it does not get data after refreshFrequency
+# TODO: combine index and scoreGrid
 
 # get creds from file
 with open('creds.json') as f:
@@ -41,7 +45,7 @@ def send_update():
 
 def send_update_loop():
     """
-    Send update to all clients every 60 seconds
+    Send update to all clients every updateFrequency seconds
     """
     while True:
         time.sleep(updateFrequency)
@@ -61,6 +65,7 @@ def add_commas(n):
     return add_commas(n[:-3]) + ',' + n[-3:]
 
 
+# noinspection SpellCheckingInspection
 def get_scores(venueID=17029, cached=False):
     """
     Get scores from scorbit
@@ -100,14 +105,20 @@ def get_scores(venueID=17029, cached=False):
 
         scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
         count = 1
+        mostRecent = datetime(1970, 1, 1)
+        mostRecentIndex = 0
         for i in scoreData['all_time_venuemachine']:
             if count == topXScores + 1:
                 break
-            scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials']})
+            if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
+                mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                mostRecentIndex = count - 1
+            scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False})
             count += 1
         for i in range(topXScores - len(scores[-1]["scores"])):
             scores[-1]["scores"].append({"rank": count, "score": "N/A", "initials": "N/A"})
             count += 1
+        scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
     return scores
 
 
@@ -169,7 +180,7 @@ def connect(ws):
     """
     client_list.append(ws)
     print("Client connected")
-    ws.send(generate_scoreboard_html())
+    # ws.send(generate_scoreboard_html())
     while True:
         data = ws.receive()
         if data == "close":
@@ -189,6 +200,7 @@ def handle_exception(e):
         return redirect(f"https://http.cat/{e.code}")
 
     # now you're handling non-HTTP exceptions only
+    print(e)
     return redirect("https://http.cat/500")
 
 

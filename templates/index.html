@@ -26,7 +26,7 @@
                 </thead>
                 <tbody class="bg-image" style="background-image: url('{{ machine.art }}');">
                 {% for score in machine.scores %}
-                <tr>
+                <tr class="{{'border border-success border-5' if score.mostRecent }}">
                     <td class="fw-bold">{{ score.rank }}</td>
                     <td class="fw-bold">{{ score.initials }}</td>
                     <td class="fw-bold">{{ score.score }}</td>
