@@ -102,23 +102,28 @@ def get_scores(venueID=17029, cached=False):
                 json.dump(machineData, f, indent=4)
             with open(f"data/scores_{machine['venuemachine_id']}.json", "w") as f:
                 json.dump(scoreData, f, indent=4)
-
-        scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
-        count = 1
-        mostRecent = datetime(1970, 1, 1)
-        mostRecentIndex = 0
-        for i in scoreData['all_time_venuemachine']:
-            if count == topXScores + 1:
-                break
-            if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
-                mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                mostRecentIndex = count - 1
-            scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False})
-            count += 1
-        for i in range(topXScores - len(scores[-1]["scores"])):
-            scores[-1]["scores"].append({"rank": count, "score": "N/A", "initials": "N/A"})
-            count += 1
-        scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
+        try:
+            scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
+            count = 1
+            mostRecent = datetime(1970, 1, 1)
+            mostRecentIndex = 0
+            for i in scoreData['all_time_venuemachine']:
+                if count == topXScores + 1:
+                    break
+                if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
+                    mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                    mostRecentIndex = count - 1
+                scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False})
+                count += 1
+            for i in range(topXScores - len(scores[-1]["scores"])):
+                scores[-1]["scores"].append({"rank": count, "score": "N/A", "initials": "N/A"})
+                count += 1
+            scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
+        except Exception as e:
+            # TODO: Add better error handling
+            print(e)
+            print("Error getting scores, using random scores")
+            scores = get_random_scores()
     return scores
 
 
