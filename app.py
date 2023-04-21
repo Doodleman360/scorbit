@@ -202,11 +202,11 @@ def handle_exception(e):
     """
     # pass through HTTP errors
     if isinstance(e, HTTPException):
-        return redirect(f"https://http.cat/{e.code}")
+        return render_template('error.html', error=e), e.code
 
     # now you're handling non-HTTP exceptions only
     print(e)
-    return redirect("https://http.cat/500")
+    return render_template('error.html', error=e), 500
 
 
 if __name__ == "__main__":
