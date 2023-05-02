@@ -20,7 +20,7 @@
                     <td class="fw-bold">{{ score.rank }}</td>
                     <td class="fw-bold">{{ score.initials }}</td>
                     <td class="fw-bold">{{ score.score }}</td>
-                    <td class="fw-bold">{{ score.daysLeft }}</td>
+                    <td class="fw-bold" style="color:HSL({{ ((score.daysLeft) / 60) * 100 }},100%,45%)">{{ score.daysLeft }}</td>
                 </tr>
                 {% endfor %}
                 </tbody>
