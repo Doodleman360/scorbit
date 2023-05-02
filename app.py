@@ -1,5 +1,5 @@
 # basic flask app
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os.path
 import time
@@ -14,17 +14,19 @@ app = Flask(__name__, template_folder="templates")
 app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
 sock = Sock(app)
 client_list = []
-updateFrequency = 120
-topXScores = 15
+
 
 # TODO: Add indicator for when scores change
-# TODO: move defaults to config file
 # TODO: make page refresh if it does not get data after refreshFrequency
 # TODO: combine index and scoreGrid
 
 # get creds from file
 with open('creds.json') as f:
     creds = json.load(f)
+
+topXScores = creds['top x scores']
+updateFrequency = creds['update frequency']
+venueID = creds['venue id']
 
 
 def send_update():
@@ -66,25 +68,29 @@ def add_commas(n):
 
 
 # noinspection SpellCheckingInspection
-def get_scores(venueID=17029, cached=False):
+def get_scores(cached=False):
     """
     Get scores from scorbit
-    :param venueID: ID of venue to get scores from
     :param cached: If true, load scores from file
     :return: List of machines with their cores
     """
     scores = []
-    venueUrl = f'https://api.scorbit.io/api/venue/{venueID}/venuemachines/'
-    venueR = requests.get(venueUrl, auth=(creds["username"], creds["password"]))
-    venueData = venueR.json()
-    # TODO: Refactor so it only pulls data when needed
+    if os.path.isfile(f"data/venue_{venueID}.json"):
+        with open(f"data/venue_{venueID}.json") as f:
+            venueData = json.load(f)
+    else:
+        venueUrl = f'https://api.scorbit.io/api/venue/{venueID}/venuemachines/'
+        venueR = requests.get(venueUrl, auth=(creds["username"], creds["password"]))
+        venueData = venueR.json()
+        with open(f"data/venue_{venueID}.json", "w") as f:
+            json.dump(venueData, f, indent=4)
 
     for machine in venueData['results']:
         if cached:
             # check if file exists
             if not os.path.isfile(f"data/machine_{machine['venuemachine_id']}.json") or not os.path.isfile(f"data/scores_{machine['venuemachine_id']}.json"):
-                print("File not found, Rerunning without testing")
-                return get_scores(venueID=venueID, cached=False)
+                print("File not found, Rerunning without cache")
+                return get_scores(cached=False)
             with open(f"data/machine_{machine['venuemachine_id']}.json") as f:
                 machineData = json.load(f)
             with open(f"data/scores_{machine['venuemachine_id']}.json") as f:
@@ -110,10 +116,15 @@ def get_scores(venueID=17029, cached=False):
             for i in scoreData['all_time_venuemachine']:
                 if count == topXScores + 1:
                     break
+                # check if score was in the last month
+                today = datetime.today()
+                expireDate = today - timedelta(days=60)
+                if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') < expireDate:
+                    continue
                 if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
                     mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
                     mostRecentIndex = count - 1
-                scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False})
+                scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False, "daysLeft": abs(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days})
                 count += 1
             for i in range(topXScores - len(scores[-1]["scores"])):
                 scores[-1]["scores"].append({"rank": count, "score": "N/A", "initials": "N/A"})
@@ -124,6 +135,13 @@ def get_scores(venueID=17029, cached=False):
             print(e)
             print("Error getting scores, using random scores")
             scores = get_random_scores()
+
+    # sort scores by physical location
+    try:
+        scores.sort(key=lambda x: creds['machine order'].index(x['name']))
+    except Exception as e:
+        print("unable to sort scores by physical location")
+        pass
     return scores
 
 
@@ -159,22 +177,21 @@ def get_random_pinball():
     return choice["name"], choice["backglass_art"]
 
 
-def generate_scoreboard_html(venueID=17029):
+def generate_scoreboard_html():
     """
     Generate scoreboard html
     :return:  html string
     """
     with app.app_context():
-        return json.dumps({'html': render_template('scoreGridSnip.html', machines=get_scores(venueID=venueID, cached=False)), 'updateFrequency': updateFrequency})
+        return json.dumps({'html': render_template('scoreGridSnip.html', machines=get_scores(cached=False)), 'updateFrequency': updateFrequency})
 
 
-@app.route('/<int:venueID>')
 @app.route('/')
-def index(venueID=17029):
+def index():
     """
     This is the main page
     """
-    return render_template('index.html', machines=get_scores(venueID=venueID, cached=True))  # return render_template('index.html', machines=get_random_scores())
+    return render_template('index.html', machines=get_scores(cached=True))  # return render_template('index.html', machines=get_random_scores())
 
 
 @sock.route("/sock")
