@@ -16,8 +16,6 @@ sock = Sock(app)
 client_list = []
 
 
-# TODO: make page refresh if it does not get data after refreshFrequency
-# TODO: combine index and scoreGrid
 # TODO: pin grand champ
 
 # get creds from file

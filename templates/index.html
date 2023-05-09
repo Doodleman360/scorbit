@@ -15,20 +15,36 @@
 </body>
 <script>
     const socket = new WebSocket('ws://' + location.host + '/sock');
+    timeoutID = undefined;
+
     socket.addEventListener('message', ev => {
         const msg = JSON.parse(ev.data);
         console.log("Received message");
         const body = document.getElementById('main');
+        cancel_timeout();
+        start_timeout(msg.updateFrequency);
         body.innerHTML = msg.html;
     });
+
     socket.addEventListener('close', (event) => {
         console.log('Socket closed');
         location.reload();
     });
-</script>
-<script>
-    setTimeout(function() {
+
+    socket.addEventListener('error', (event) => {
+        console.log('Socket error');
         location.reload();
-    }, 600000); // 600000 milliseconds = 10 minutes
+    });
+
+    start_timeout = (time) => {
+        this.timeoutID = setTimeout(() => {
+            console.log('Socket timeout');
+            socket.close();
+        }, time*1000+10000);
+    }
+
+    cancel_timeout = () => {
+        clearTimeout(this.timeoutID);
+    }
 </script>
 </html>
