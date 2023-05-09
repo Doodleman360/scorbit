@@ -184,12 +184,12 @@ def generate_scoreboard_html():
         return json.dumps({'html': render_template('scoreGridSnip.html', machines=get_scores(cached=False)), 'updateFrequency': updateFrequency})
 
 
-@app.route('/')
+@app.route('/',  methods=['GET', 'POST'])
 def index():
     """
     This is the main page
     """
-    return render_template('index.html', machines=get_scores(cached=True))  # return render_template('index.html', machines=get_random_scores())
+    return render_template('index.html')
 
 
 @sock.route("/sock")

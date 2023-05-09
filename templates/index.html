@@ -11,8 +11,22 @@
 </head>
 <body class="">
 <div id="main">
+    <div class="loading" id="loading"></div>
+
 </div>
 </body>
+<script>
+    // Loading animation from https://codepen.io/john_r_muir/pen/mdzqEgB
+    for (let i = 0; i < 15; i++) {
+        let parentEl = document.createElement("div");
+        parentEl.classList.add("strand");
+        parentEl.innerHTML = `
+            <div class="top" style="animation-delay:${i * -0.2}s"></div>
+            <div class="bottom" style="animation-delay:${-1.5 - (i * 0.2)}s"></div>
+          `
+        document.getElementById('loading').appendChild(parentEl);
+    }
+</script>
 <script>
     const socket = new WebSocket('ws://' + location.host + '/sock');
     timeoutID = undefined;
@@ -40,7 +54,7 @@
         this.timeoutID = setTimeout(() => {
             console.log('Socket timeout');
             socket.close();
-        }, time*1000+10000);
+        }, time * 1000 + 10000);
     }
 
     cancel_timeout = () => {
