@@ -1,9 +1,9 @@
 <div class="container-fluid text-center p-3 text-primary-emphasis vh-100 font-size: 2vh;">
     <div class="row h-100" id="scores">
         {% for machine in machines %}
-        <div class="col-sm bg-primary-subtle border border-primary-subtle rounded-3">
-            <table class="table table">
-                <thead>
+            <div class="col-sm bg-primary-subtle border border-primary-subtle rounded-3">
+                <table class="table table">
+                    <thead>
                     <tr>
                         <th colspan="4" class="text-center">{{ machine.name }}</th>
                     </tr>
@@ -13,19 +13,42 @@
                         <th>Score</th>
                         <th>E</th>
                     </tr>
-                </thead>
-                <tbody class="bg-image" style="background-image: url('{{ machine.art }}');">
-                {% for score in machine.scores %}
-                <tr class="{{'border border-success border-5' if score.mostRecent }}">
-                    <td class="fw-bold">{{ score.rank }}</td>
-                    <td class="fw-bold">{{ score.initials }}</td>
-                    <td class="fw-bold">{{ score.score }}</td>
-                    <td class="fw-bold" style="color:HSL({{ ((score.daysLeft) / 60) * 100 }},100%,45%)">{{ score.daysLeft }}</td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody class="bg-image" style="background-image: url('{{ machine.art }}');">
+                    {% for score in machine.scores %}
+                        <tr class="{{ 'border border-success border-5' if score.mostRecent }}">
+                            <td class="fw-bold">{{ score.rank }}</td>
+                            <td class="fw-bold">{{ score.initials }}</td>
+                            <td class="fw-bold">{{ score.score }}</td>
+                            <td class="fw-bold"
+                                style="color:HSL({{ ((score.daysLeft) / 60) * 100 }},100%,45%)">{{ score.daysLeft }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <form>
+                    <div class="form-group">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-3">
+                                <label for="Initials">Initials:</label>
+                            </div>
+                            <div class="col-auto">
+                                <input type="text" class="form-control" id="Initials" aria-describedby="Initials" placeholder="Enter Initials">
+                            </div>
+                        </div>
+                        <div class="row g-3 align-items-center">
+                            <div class="col-3">
+                                <label for="Score">Score: </label>
+                            </div>
+                            <div class="col-auto">
+                                <input type="number" class="form-control" id="Score" placeholder="Score">
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" class="form-control" id="Machine" value="{{ machine.name }}">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
         {% endfor %}
     </div>
 </div>
