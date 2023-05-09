@@ -16,9 +16,9 @@ sock = Sock(app)
 client_list = []
 
 
-# TODO: Add indicator for when scores change
 # TODO: make page refresh if it does not get data after refreshFrequency
 # TODO: combine index and scoreGrid
+# TODO: pin grand champ
 
 # get creds from file
 with open('creds.json') as f:
@@ -140,7 +140,7 @@ def get_scores(cached=False):
     try:
         scores.sort(key=lambda x: creds['machine order'].index(x['name']))
     except Exception as e:
-        print("unable to sort scores by physical location")
+        print(f"unable to sort scores by physical location: {e}")
         pass
     return scores
 
@@ -202,7 +202,7 @@ def connect(ws):
     """
     client_list.append(ws)
     print("Client connected")
-    # ws.send(generate_scoreboard_html())
+    ws.send(generate_scoreboard_html())
     while True:
         data = ws.receive()
         if data == "close":
