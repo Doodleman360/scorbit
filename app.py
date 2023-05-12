@@ -108,6 +108,7 @@ def get_scores(cached=False):
     """
     scores = []
     venueData = get_venue_data()
+    today = datetime.today()
 
     for machine in venueData['results']:
         if cached:
@@ -132,36 +133,52 @@ def get_scores(cached=False):
                 json.dump(machineData, f, indent=4)
             with open(f"data/scores_{machine['venuemachine_id']}.json", "w") as f:
                 json.dump(scoreData, f, indent=4)
+
+        if os.path.isfile(f"data/scores_local_{machine['venuemachine_id']}.json"):
+            with open(f"data/scores_local_{machine['venuemachine_id']}.json") as f:
+                localScoreData = json.load(f)
+        else:
+            localScoreData = []
+
         try:
             scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
-            count = 1
             mostRecent = datetime(1970, 1, 1)
             mostRecentIndex = 0
             topExpiredScore = {"score": 0}
             for i in scoreData['all_time_venuemachine']:
-                if count == topXScores + 1:
-                    break
-                # check if score was in the last month
-                today = datetime.today()
                 expireDate = today - timedelta(days=expireInterval)
                 if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') < expireDate:
                     if i['score'] > topExpiredScore['score']:
-                        topExpiredScore = {"score": i['score'], "initials": i['player']['initials'], "daysLeft": -(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "mostRecent": False}
+                        topExpiredScore = {"score": i['score'], "initials": i['player']['initials'], "daysLeft": -(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "mostRecent": False, "updated": i['updated']}
                     continue
-                if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
-                    mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                    mostRecentIndex = count - 1
-                scores[-1]["scores"].append({"score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False, "daysLeft": abs(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days})
-                count += 1
+                scores[-1]["scores"].append({"score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False, "daysLeft": abs(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "updated": i['updated']})
+
+            for i in localScoreData:
+                expireDate = today - timedelta(days=expireInterval)
+                if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') < expireDate:
+                    if i['score'] > topExpiredScore['score']:
+                        topExpiredScore = {"score": i['score'], "initials": i['player']['initials'], "daysLeft": -(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "mostRecent": False, "updated": i['updated']}
+                    continue
+                scores[-1]["scores"].append({"score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False, "daysLeft": abs(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "updated": i['updated']})
+
             for i in range(topXScores - len(scores[-1]["scores"])):
-                scores[-1]["scores"].append({"score": "0", "initials": "N/A"})
-                count += 1
-            scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
+                scores[-1]["scores"].append({"score": "0", "initials": "N/A", "mostRecent": False, "daysLeft": 0, "updated": "1970-01-01T00:00:00.000Z"})
+            # if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
+            #     mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            #     mostRecentIndex = count - 1
+            # scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
             scores[-1]["scores"].sort(key=lambda x: int(x['score'].replace(",", "")), reverse=True)
             if topExpiredScore['score'] > 0 and int(scores[-1]["scores"][0]["score"].replace(",", "")) < topExpiredScore["score"]:
                 scores[-1]["scores"].pop()
                 topExpiredScore["score"] = add_commas(topExpiredScore["score"])
                 scores[-1]["scores"].insert(0, topExpiredScore)
+            count = 0
+            for i in scores[-1]["scores"]:
+                if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
+                    mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                    mostRecentIndex = count
+                count += 1
+            scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
         except Exception as e:
             # TODO: Add better error handling
             print(f"{type(e)} error on line {e.__traceback__.tb_lineno}: {e}")
@@ -238,6 +255,19 @@ def connect(ws):
         data = ws.receive()
         if data == "close":
             break
+        else:
+            # TODO: add input validation
+            data = json.loads(data)
+            print(data)
+            if os.path.isfile(f"data/scores_local_{data['machine']}.json"):
+                with open(f"data/scores_local_{data['machine']}.json") as f:
+                    scores = json.load(f)
+                    scores.append({"score": data["score"], "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
+            else:
+                scores = [{"score": data["score"], "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')}]
+            with open(f"data/scores_local_{data['machine']}.json", "w") as f:
+                json.dump(scores, f)
+            ws.send(generate_scoreboard_data())
     client_list.remove(ws)
 
 
@@ -253,9 +283,7 @@ def handle_exception(e):
         return render_template('error.html', error=e), e.code
 
     # now you're handling non-HTTP exceptions only
-    print(e)
-    print(type(e))
-    print(e.__traceback__)
+    print(f"{type(e)} error on line {e.__traceback__.tb_lineno}: {e}")
     print("Error, showing error page")
     return render_template('error.html', error=e), 500
 

@@ -10,6 +10,13 @@
     <title>High Scores</title>
 </head>
 <body id="main">
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="liveToast" class="toast text-bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body">
+                Score updated successfully
+            </div>
+        </div>
+    </div>
     <div class="container-fluid text-center p-3 text-primary-emphasis vh-100 font-size: 2vh;">
         <div class="row h-100" id="scores">
             {% for machine in machineData.results %}
@@ -38,14 +45,14 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                    <form id="my-form">
+                    <form id="{{ machine.machine_name }}-form">
                         <div class="form-group">
                             <div class="row g-3 align-items-center">
                                 <div class="col-3">
                                     <label for="Initials">Initials:</label>
                                 </div>
                                 <div class="col-auto">
-                                    <input type="text" class="form-control" id="Initials" aria-describedby="Initials" placeholder="Enter Initials">
+                                    <input type="text" class="form-control" id="{{ machine.machine_name }}-Initials" aria-describedby="Initials" placeholder="Enter Initials">
                                 </div>
                             </div>
                             <div class="row g-3 align-items-center">
@@ -53,11 +60,11 @@
                                     <label for="Score">Score: </label>
                                 </div>
                                 <div class="col-auto">
-                                    <input type="number" class="form-control" id="Score" placeholder="Score">
+                                    <input type="number" class="form-control" id="{{ machine.machine_name }}-Score" placeholder="Score">
                                 </div>
                             </div>
                         </div>
-                        <input type="hidden" class="form-control" id="Machine" value="{{ machine.name }}">
+                        <input type="hidden" class="form-control" id="{{ machine.machine_name }}-Machine" value="{{ machine.venuemachine_id }}">
                         <button type="submit" class="btn btn-primary">Submit</button>
                     </form>
                 </div>
@@ -68,6 +75,8 @@
 <script>
     const socket = new WebSocket('ws://' + location.host + '/sock');
     timeoutID = undefined;
+    const toastElement = document.getElementById('liveToast')
+    const toast = new bootstrap.Toast(toastElement)
 
     socket.addEventListener('message', ev => {
         const msg = JSON.parse(ev.data);
@@ -129,6 +138,32 @@
     }
 
     start_timeout(10);
+
+
+    {% for machine in machineData.results %}
+    document.getElementById('{{ machine.machine_name }}-form').onsubmit = ev => {
+        ev.preventDefault();
+        try {
+            const initialsElement = document.getElementById("{{ machine.machine_name }}-Initials");
+            const scoreElement = document.getElementById("{{ machine.machine_name }}-Score");
+            const machineElement = document.getElementById("{{ machine.machine_name }}-Machine");
+
+            socket.send(JSON.stringify({
+                "initials": initialsElement.value,
+                "score": scoreElement.value,
+                "machine": machineElement.value
+            }));
+            initialsElement.value = "";
+            scoreElement.value = "";
+            toast.show();
+
+
+        } catch (err) {
+            console.log(err);
+            window.alert("ERROR WRONG BAD YOU DID A NO NO!! WEE-WOO THE POLICE ARE COMMING FOR YOU AND THEY WILL ARREST YOU FOR THE BAD THING YOU JUST DID");
+        }
+    };
+    {% endfor %}
 </script>
 
 </html>
