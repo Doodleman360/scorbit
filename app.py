@@ -15,20 +15,20 @@ app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
 sock = Sock(app)
 client_list = []
 
-# TODO: pin grand champ
 
 # get creds from file
 if os.path.isfile("creds.json"):
     with open('creds.json') as f:
         creds = json.load(f)
 else:
-    creds = {'username': input("Enter scorbit username: "), 'password': input("Enter scorbit password: "), 'venue id': input("Enter venue id: "), 'top x scores': int(input("Enter number of scores to display: ")), 'update frequency': int(input("Enter update frequency in seconds: ")), 'machine order': []}
+    creds = {'username': input("Enter scorbit username: "), 'password': input("Enter scorbit password: "), 'venue id': input("Enter venue id: "), 'top x scores': int(input("Enter number of scores to display: ")), 'update frequency': int(input("Enter update frequency in seconds: ")), 'machine order': [], 'expire interval': int(input("Enter expire interval in days: "))}
     with open('creds.json', 'w') as f:
         json.dump(creds, f, indent=4)
 
 topXScores = creds['top x scores']
 updateFrequency = creds['update frequency']
 venueID = creds['venue id']
+expireInterval = creds['expire interval']
 
 
 def send_update():
@@ -131,26 +131,34 @@ def get_scores(cached=False):
             count = 1
             mostRecent = datetime(1970, 1, 1)
             mostRecentIndex = 0
+            topExpiredScore = {"score": 0}
             for i in scoreData['all_time_venuemachine']:
                 if count == topXScores + 1:
                     break
                 # check if score was in the last month
                 today = datetime.today()
-                expireDate = today - timedelta(days=60)
+                expireDate = today - timedelta(days=expireInterval)
                 if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') < expireDate:
+                    if i['score'] > topExpiredScore['score']:
+                        topExpiredScore = {"score": i['score'], "initials": i['player']['initials'], "daysLeft": -(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "mostRecent": False}
                     continue
                 if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') > mostRecent:
                     mostRecent = datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')
                     mostRecentIndex = count - 1
-                scores[-1]["scores"].append({"rank": count, "score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False, "daysLeft": abs(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days})
+                scores[-1]["scores"].append({"score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False, "daysLeft": abs(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days})
                 count += 1
             for i in range(topXScores - len(scores[-1]["scores"])):
-                scores[-1]["scores"].append({"rank": count, "score": "N/A", "initials": "N/A"})
+                scores[-1]["scores"].append({"score": "0", "initials": "N/A"})
                 count += 1
             scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
+            scores[-1]["scores"].sort(key=lambda x: int(x['score'].replace(",", "")), reverse=True)
+            if topExpiredScore['score'] > 0 and int(scores[-1]["scores"][0]["score"].replace(",", "")) < topExpiredScore["score"]:
+                scores[-1]["scores"].pop()
+                topExpiredScore["score"] = add_commas(topExpiredScore["score"])
+                scores[-1]["scores"].insert(0, topExpiredScore)
         except Exception as e:
             # TODO: Add better error handling
-            print(e)
+            print(f"{type(e)} error on line {e.__traceback__.tb_lineno}: {e}")
             print("Error getting scores, using random scores")
             scores = get_random_scores()
 
@@ -200,7 +208,7 @@ def generate_scoreboard_data():
     Generate scoreboard data
     :return:  json data
     """
-    return json.dumps({'data': get_scores(cached=False), 'updateFrequency': updateFrequency})
+    return json.dumps({'data': get_scores(cached=False), 'updateFrequency': updateFrequency, 'expireInterval': expireInterval})
 
 
 @app.route('/')
@@ -208,7 +216,7 @@ def index():
     """
     This is the main page
     """
-    return render_template('index.html', machineData=get_venue_data(), topXScores=topXScores, updateFrequency=updateFrequency)
+    return render_template('index.html', machineData=get_venue_data(), topXScores=topXScores, updateFrequency=updateFrequency, expireInterval=expireInterval)
 
 
 @sock.route("/sock")
@@ -232,7 +240,7 @@ def handle_exception(e):
     """
     Handle all exceptions
     :param e: exception
-    :return: redirect to http.cat
+    :return: render error page
     """
     # pass through HTTP errors
     if isinstance(e, HTTPException):
@@ -240,6 +248,9 @@ def handle_exception(e):
 
     # now you're handling non-HTTP exceptions only
     print(e)
+    print(type(e))
+    print(e.__traceback__)
+    print("Error, showing error page")
     return render_template('error.html', error=e), 500
 
 

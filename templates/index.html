@@ -33,7 +33,7 @@
                                 <td class="fw-bold"></td>
                                 <td class="fw-bold"></td>
                                 <td class="fw-bold"
-                                    style="color:HSL({{ ((0) / 60) * 100 }},100%,45%)"></td>
+                                    style="color:HSL({{ ((0) / expireInterval ) * 100 }},100%,45%)"></td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -96,7 +96,7 @@
                     player.innerHTML = scoreData.initials;
                     score.innerHTML = scoreData.score;
                     e.innerHTML = scoreData.daysLeft;
-                    e.style.color = 'HSL(' + ((scoreData.daysLeft / 60) * 100) + ',100%,45%)';
+                    e.style.color = 'HSL(' + ((scoreData.daysLeft / msg.expireInterval) * 100) + ',100%,45%)';
                 } else {
                     player.innerHTML = '';
                     score.innerHTML = '';
