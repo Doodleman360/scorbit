@@ -9,24 +9,62 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <title>High Scores</title>
 </head>
-<body class="">
-<div id="main">
-    <div class="loading" id="loading"></div>
-
-</div>
+<body id="main">
+    <div class="container-fluid text-center p-3 text-primary-emphasis vh-100 font-size: 2vh;">
+        <div class="row h-100" id="scores">
+            {% for machine in machineData.results %}
+                <div class="col-sm bg-primary-subtle border border-primary-subtle rounded-3">
+                    <table class="table" id="{{ machine.machine_name }}">
+                        <thead>
+                        <tr>
+                            <th colspan="4" class="text-center">{{ machine.machine_name }}</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th>Player</th>
+                            <th>Score</th>
+                            <th>E</th>
+                        </tr>
+                        </thead>
+                        <tbody class="bg-image" style="background-image: url('');">
+                        {% for x in range(topXScores) %}
+                            <tr>
+                                <td class="fw-bold">{{ x + 1 }}</td>
+                                <td class="fw-bold"></td>
+                                <td class="fw-bold"></td>
+                                <td class="fw-bold"
+                                    style="color:HSL({{ ((0) / 60) * 100 }},100%,45%)"></td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    <form id="my-form">
+                        <div class="form-group">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-3">
+                                    <label for="Initials">Initials:</label>
+                                </div>
+                                <div class="col-auto">
+                                    <input type="text" class="form-control" id="Initials" aria-describedby="Initials" placeholder="Enter Initials">
+                                </div>
+                            </div>
+                            <div class="row g-3 align-items-center">
+                                <div class="col-3">
+                                    <label for="Score">Score: </label>
+                                </div>
+                                <div class="col-auto">
+                                    <input type="number" class="form-control" id="Score" placeholder="Score">
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" class="form-control" id="Machine" value="{{ machine.name }}">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
 </body>
-<script>
-    // Loading animation from https://codepen.io/john_r_muir/pen/mdzqEgB
-    for (let i = 0; i < 15; i++) {
-        let parentEl = document.createElement("div");
-        parentEl.classList.add("strand");
-        parentEl.innerHTML = `
-            <div class="top" style="animation-delay:${i * -0.2}s"></div>
-            <div class="bottom" style="animation-delay:${-1.5 - (i * 0.2)}s"></div>
-          `
-        document.getElementById('loading').appendChild(parentEl);
-    }
-</script>
 <script>
     const socket = new WebSocket('ws://' + location.host + '/sock');
     timeoutID = undefined;
@@ -34,10 +72,38 @@
     socket.addEventListener('message', ev => {
         const msg = JSON.parse(ev.data);
         console.log("Received message");
-        const body = document.getElementById('main');
-        cancel_timeout();
-        start_timeout(msg.updateFrequency);
-        body.innerHTML = msg.html;
+        restart_timeout(msg.updateFrequency);
+        for(let i = 0; i < msg.data.length; i++) {
+            const machine = msg.data[i];
+            console.log(machine);
+            const table = document.getElementById(machine.name);
+            const tbody = table.getElementsByTagName('tbody')[0];
+            tbody.style.backgroundImage = 'url("' + machine.art + '")';
+            const rows = tbody.getElementsByTagName('tr');
+            for (let j = 0; j < rows.length; j++) {
+                const row = rows[j];
+                const cells = row.getElementsByTagName('td');
+                const player = cells[1];
+                const score = cells[2];
+                const e = cells[3];
+                if (j < machine.scores.length) {
+                    const scoreData = machine.scores[j];
+                    if(scoreData.mostRecent){
+                        row.classList.add('border-success', 'border-5', 'border');
+                    } else {
+                        row.classList.remove('border-success', 'border-5', 'border');
+                    }
+                    player.innerHTML = scoreData.initials;
+                    score.innerHTML = scoreData.score;
+                    e.innerHTML = scoreData.daysLeft;
+                    e.style.color = 'HSL(' + ((scoreData.daysLeft / 60) * 100) + ',100%,45%)';
+                } else {
+                    player.innerHTML = '';
+                    score.innerHTML = '';
+                    e.innerHTML = '';
+                }
+            }
+        }
     });
 
     socket.addEventListener('close', (event) => {
@@ -57,10 +123,12 @@
         }, time * 1000 + 10000);
     }
 
-    cancel_timeout = () => {
+    restart_timeout = (time) => {
         clearTimeout(this.timeoutID);
+        start_timeout(time);
     }
 
     start_timeout(10);
 </script>
+
 </html>

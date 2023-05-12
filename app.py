@@ -15,7 +15,6 @@ app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
 sock = Sock(app)
 client_list = []
 
-
 # TODO: pin grand champ
 
 # get creds from file
@@ -31,7 +30,7 @@ def send_update():
     """
     Send update to all clients
     """
-    data = generate_scoreboard_html()
+    data = generate_scoreboard_data()
     clients = client_list.copy()
     for client in clients:
         try:
@@ -65,14 +64,11 @@ def add_commas(n):
     return add_commas(n[:-3]) + ',' + n[-3:]
 
 
-# noinspection SpellCheckingInspection
-def get_scores(cached=False):
+def get_venue_data():
     """
-    Get scores from scorbit
-    :param cached: If true, load scores from file
-    :return: List of machines with their cores
+    Get venue data from file or scorbit
+    :return: Venue data
     """
-    scores = []
     if os.path.isfile(f"data/venue_{venueID}.json"):
         with open(f"data/venue_{venueID}.json") as f:
             venueData = json.load(f)
@@ -82,6 +78,25 @@ def get_scores(cached=False):
         venueData = venueR.json()
         with open(f"data/venue_{venueID}.json", "w") as f:
             json.dump(venueData, f, indent=4)
+
+    # sort scores by physical location
+    try:
+        venueData['results'].sort(key=lambda x: creds['machine order'].index(x['machine_name']))
+    except Exception as e:
+        print(f"unable to sort scores by physical location: {e}")
+        pass
+    return venueData
+
+
+# noinspection SpellCheckingInspection
+def get_scores(cached=False):
+    """
+    Get scores from scorbit
+    :param cached: If true, load scores from file
+    :return: List of machines with their cores
+    """
+    scores = []
+    venueData = get_venue_data()
 
     for machine in venueData['results']:
         if cached:
@@ -134,12 +149,12 @@ def get_scores(cached=False):
             print("Error getting scores, using random scores")
             scores = get_random_scores()
 
-    # sort scores by physical location
-    try:
-        scores.sort(key=lambda x: creds['machine order'].index(x['name']))
-    except Exception as e:
-        print(f"unable to sort scores by physical location: {e}")
-        pass
+
+    # try:
+    #     scores.sort(key=lambda x: creds['machine order'].index(x['name']))
+    # except Exception as e:
+    #     print(f"unable to sort scores by physical location: {e}")
+    #     pass
     return scores
 
 
@@ -175,21 +190,20 @@ def get_random_pinball():
     return choice["name"], choice["backglass_art"]
 
 
-def generate_scoreboard_html():
+def generate_scoreboard_data():
     """
-    Generate scoreboard html
-    :return:  html string
+    Generate scoreboard data
+    :return:  json data
     """
-    with app.app_context():
-        return json.dumps({'html': render_template('scoreGridSnip.html', machines=get_scores(cached=False)), 'updateFrequency': updateFrequency})
+    return json.dumps({'data': get_scores(cached=False), 'updateFrequency': updateFrequency})
 
 
-@app.route('/',  methods=['GET', 'POST'])
+@app.route('/')
 def index():
     """
     This is the main page
     """
-    return render_template('index.html')
+    return render_template('index.html', machineData=get_venue_data(), topXScores=topXScores, updateFrequency=updateFrequency)
 
 
 @sock.route("/sock")
@@ -200,7 +214,7 @@ def connect(ws):
     """
     client_list.append(ws)
     print("Client connected")
-    ws.send(generate_scoreboard_html())
+    ws.send(generate_scoreboard_data())
     while True:
         data = ws.receive()
         if data == "close":
