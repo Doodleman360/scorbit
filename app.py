@@ -18,8 +18,13 @@ client_list = []
 # TODO: pin grand champ
 
 # get creds from file
-with open('creds.json') as f:
-    creds = json.load(f)
+if os.path.isfile("creds.json"):
+    with open('creds.json') as f:
+        creds = json.load(f)
+else:
+    creds = {'username': input("Enter scorbit username: "), 'password': input("Enter scorbit password: "), 'venue id': input("Enter venue id: "), 'top x scores': int(input("Enter number of scores to display: ")), 'update frequency': int(input("Enter update frequency in seconds: ")), 'machine order': []}
+    with open('creds.json', 'w') as f:
+        json.dump(creds, f, indent=4)
 
 topXScores = creds['top x scores']
 updateFrequency = creds['update frequency']
