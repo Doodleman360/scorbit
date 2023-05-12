@@ -1,4 +1,8 @@
-# basic flask app
+"""
+Live-ish Scorbit Scoreboard
+Author: Julien Sloan
+Description: A scoreboard for scorbit.io
+"""
 from datetime import datetime, timedelta
 import json
 import os.path
@@ -23,6 +27,8 @@ if os.path.isfile("creds.json"):
 else:
     creds = {'username': input("Enter scorbit username: "), 'password': input("Enter scorbit password: "), 'venue id': input("Enter venue id: "), 'top x scores': int(input("Enter number of scores to display: ")), 'update frequency': int(input("Enter update frequency in seconds: ")), 'machine order': [], 'expire interval': int(input("Enter expire interval in days: "))}
     with open('creds.json', 'w') as f:
+        print("Saving creds to file")
+        print("If you want to set the machine order, edit creds.json and restart the program")
         json.dump(creds, f, indent=4)
 
 topXScores = creds['top x scores']
