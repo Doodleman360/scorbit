@@ -9,7 +9,7 @@ import os.path
 import time
 import requests
 import random
-from flask import Flask, redirect, render_template, request
+from flask import Flask, redirect, render_template, request, send_from_directory
 from flask_sock import Sock
 from werkzeug.exceptions import HTTPException
 from threading import Thread
@@ -18,7 +18,6 @@ app = Flask(__name__, template_folder="templates")
 app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
 sock = Sock(app)
 client_list = []
-
 
 # get creds from file
 if os.path.isfile("creds.json"):
@@ -141,7 +140,7 @@ def get_scores(cached=False):
             localScoreData = []
 
         try:
-            scores.append({"name": machineData['machine']['name'], "art": machineData['machine']['backglass_art'], "scores": []})
+            scores.append({"name": machineData['machine']['name'], "art": cache_backglass_art(machineData['machine']['backglass_art']), "scores": []})
             mostRecent = datetime(1970, 1, 1)
             mostRecentIndex = 0
             topExpiredScore = {"score": 0}
@@ -185,13 +184,31 @@ def get_scores(cached=False):
             print("Error getting scores, using random scores")
             scores = get_random_scores()
 
-
     # try:
     #     scores.sort(key=lambda x: creds['machine order'].index(x['name']))
     # except Exception as e:
     #     print(f"unable to sort scores by physical location: {e}")
     #     pass
     return scores
+
+
+def cache_backglass_art(link):
+    """
+    Cache backglass art
+    :param link: link to backglass art
+    :return: path to cached backglass art
+    """
+    if os.path.isfile(f"data/art/{link.split('/')[-1]}"):
+        return f"data/art/{link.split('/')[-1]}"
+    else:
+        r = requests.get(link)
+        if r.status_code == 200:
+            with open(f"data/art/{link.split('/')[-1]}", "wb") as f:
+                f.write(r.content)
+            return f"data/art/{link.split('/')[-1]}"
+        else:
+            print(f"Error downloading {link}")
+            return None
 
 
 def get_random_scores():
@@ -240,6 +257,14 @@ def index():
     This is the main page
     """
     return render_template('index.html', machineData=get_venue_data(), topXScores=topXScores, updateFrequency=updateFrequency, expireInterval=expireInterval)
+
+
+@app.route('/data/art/<path:path>')
+def art(path):
+    """
+    return art from data/art
+    """
+    return send_from_directory('data/art', path)
 
 
 @sock.route("/sock")
