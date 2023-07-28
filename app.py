@@ -143,9 +143,8 @@ def get_scores(cached=False):
             for i in localScoreData:
                 expireDate = today - timedelta(days=expireInterval)
                 if datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ') < expireDate:
-                    print(type(i['score']))
-                    if i['score'] > topExpiredScore['score']:
-                        topExpiredScore = {"score": i['score'], "initials": i['player']['initials'], "daysLeft": -(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "mostRecent": False, "updated": i['updated']}
+                    if int(i['score']) > topExpiredScore['score']:
+                        topExpiredScore = {"score": int(i['score']), "initials": i['player']['initials'], "daysLeft": -(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "mostRecent": False, "updated": i['updated']}
                     continue
                 scores[-1]["scores"].append({"score": add_commas(i['score']), "initials": i['player']['initials'], "mostRecent": False, "daysLeft": abs(expireDate - datetime.strptime(i['updated'], '%Y-%m-%dT%H:%M:%S.%fZ')).days, "updated": i['updated']})
 
