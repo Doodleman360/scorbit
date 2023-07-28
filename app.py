@@ -155,6 +155,7 @@ def get_scores(cached=False):
             #     mostRecentIndex = count - 1
             # scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
             scores[-1]["scores"].sort(key=lambda x: int(x['score'].replace(",", "")), reverse=True)
+            print(topExpiredScore)
             if topExpiredScore['score'] > 0 and int(scores[-1]["scores"][0]["score"].replace(",", "")) < topExpiredScore["score"]:
                 scores[-1]["scores"].pop()
                 topExpiredScore["score"] = add_commas(topExpiredScore["score"])
