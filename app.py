@@ -225,7 +225,7 @@ def connect(ws):
                     scores = json.load(f)
                     scores.append({"score": int(data["score"]), "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
             else:
-                scores = [{"score": data["score"], "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')}]
+                scores = [{"score": int(data["score"]), "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')}]
             with open(f"data/scores_local_{data['machine']}.json", "w") as f:
                 json.dump(scores, f)
             ws.send(generate_scoreboard_data())
