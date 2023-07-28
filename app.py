@@ -155,7 +155,6 @@ def get_scores(cached=False):
             #     mostRecentIndex = count - 1
             # scores[-1]["scores"][mostRecentIndex]["mostRecent"] = True
             scores[-1]["scores"].sort(key=lambda x: int(x['score'].replace(",", "")), reverse=True)
-            print(topExpiredScore)
             if topExpiredScore['score'] > 0 and int(scores[-1]["scores"][0]["score"].replace(",", "")) < topExpiredScore["score"]:
                 scores[-1]["scores"].pop()
                 topExpiredScore["score"] = add_commas(topExpiredScore["score"])
@@ -221,11 +220,10 @@ def connect(ws):
         else:
             # TODO: add input validation
             data = json.loads(data)
-            print(data)
             if os.path.isfile(f"data/scores_local_{data['machine']}.json"):
                 with open(f"data/scores_local_{data['machine']}.json") as f:
                     scores = json.load(f)
-                    scores.append({"score": data["score"], "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
+                    scores.append({"score": int(data["score"]), "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')})
             else:
                 scores = [{"score": data["score"], "player": {"initials": data["initials"]}, "updated": datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%fZ')}]
             with open(f"data/scores_local_{data['machine']}.json", "w") as f:
