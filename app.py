@@ -185,7 +185,7 @@ def generate_scoreboard_data():
     Generate scoreboard data
     :return:  json data
     """
-    return json.dumps({'data': get_scores(cached=False), 'updateFrequency': updateFrequency, 'expireInterval': expireInterval})
+    return json.dumps({'data': get_scores(cached=True), 'updateFrequency': updateFrequency, 'expireInterval': expireInterval})
 
 
 @app.route('/')
@@ -217,6 +217,10 @@ def connect(ws):
         data = ws.receive()
         if data == "close":
             break
+        elif "refresh" in json.loads(data).keys():
+            print("Updating scoreboard")
+            get_scores(cached=False)
+            ws.send(generate_scoreboard_data())
         else:
             # TODO: add input validation
             data = json.loads(data)

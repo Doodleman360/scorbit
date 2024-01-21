@@ -71,6 +71,13 @@
             {% endfor %}
         </div>
     </div>
+    <div class="div row">
+        <div class="col-sm text-center">
+            <form id="refresh-form">
+                <button type="submit" class="btn btn-primary">Refresh</button>
+            </form>
+        </div>
+    </div>
 </body>
 <script>
     const socket = new WebSocket('ws://' + location.host + '/sock');
@@ -139,6 +146,12 @@
 
     start_timeout(10);
 
+    document.getElementById('refresh-form').onsubmit = ev => {
+        ev.preventDefault();
+        socket.send(JSON.stringify({
+            "refresh": true
+        }));
+    };
 
     {% for machine in machineData.results %}
     document.getElementById('{{ machine.machine_name }}-form').onsubmit = ev => {
@@ -160,7 +173,7 @@
 
         } catch (err) {
             console.log(err);
-            window.alert("ERROR WRONG BAD YOU DID A NO NO!! WEE-WOO THE POLICE ARE COMMING FOR YOU AND THEY WILL ARREST YOU FOR THE BAD THING YOU JUST DID");
+            window.alert("ERROR WRONG BAD YOU DID A NO NO!! WEE-WOO THE POLICE ARE COMING FOR YOU AND THEY WILL ARREST YOU FOR THE BAD THING YOU JUST DID");
         }
     };
     {% endfor %}
