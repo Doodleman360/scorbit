@@ -109,6 +109,7 @@ def get_scores(cached=False):
                 scoreData = json.load(f)
         else:
             # get data from scorbit
+            print("Getting data from scorbit")
             machineUrl = f"https://api.scorbit.io/api/venuemachine/{machine['venuemachine_id']}"
             scoreUrl = f"https://api.scorbit.io/api/venuemachine/{machine['venuemachine_id']}/top_scores/"
             machineR = requests.get(machineUrl, auth=(creds["username"], creds["password"]))
